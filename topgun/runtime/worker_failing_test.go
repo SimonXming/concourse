@@ -46,15 +46,18 @@ var _ = Describe("Worker failing", func() {
 			Fly.Run("trigger-job", "-w", "-j", "worker-failing-test/use-safe-worker")
 
 			By("having a cache for the controlled-trigger resource")
-			Expect(VolumesByResourceType("mock")).ToNot(BeEmpty())
+			Expect(len(VolumesByResourceType("mock"))).To(Equal(2))
 
 			By("discovering a new version force the existing volume on the safe worker to be no longer desired")
 			Fly.Run("check-resource", "-r", "worker-failing-test/controlled-trigger", "-f", "version:third")
 
+			By("trigger build and cleanup old caches, only keep the latest cache")
+			Fly.Run("trigger-job", "-w", "-j", "worker-failing-test/use-doomed-worker")
+
 			By("eventually garbage collecting the volume from the safe worker")
 			Eventually(func() []string {
 				return VolumesByResourceType("mock")
-			}).Should(BeEmpty())
+			}).Should(HaveLen(1))
 		})
 	})
 })
